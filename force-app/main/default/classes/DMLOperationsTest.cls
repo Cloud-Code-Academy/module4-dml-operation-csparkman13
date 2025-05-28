@@ -9,7 +9,7 @@
 @IsTest
 public with sharing class DMLOperationsTest {
 
-    @IsTest
+    @IsTest // Q1
     static void testInsertNewAccount() {
         // Call the method to test
         Id newAccountId = DMLOperations.insertNewAccount();
@@ -25,7 +25,7 @@ public with sharing class DMLOperationsTest {
         System.assertEquals(newAccountId, retrievedAccount.Id, 'The IDs should match');
     }
 
-    @IsTest
+    @IsTest // Q2
     static void testCreateAccount() {
         // Test the method
         DMLOperations.createAccount('Test Account', 'Technology');
@@ -40,7 +40,7 @@ public with sharing class DMLOperationsTest {
     }
 
 
-    @IsTest
+    @IsTest // Q3
     static void testInsertNewContact() {
         // Create a test Account first
         Account testAccount = new Account(Name = 'Test Account');
@@ -61,7 +61,7 @@ public with sharing class DMLOperationsTest {
         System.assertEquals(testAccount.Id, retrievedContact.AccountId, 'The Account IDs should match');
     }
     
-    @IsTest
+    @IsTest // Q4
     static void testUpdateContactLastName() {
         // Create a test Contact first
         Contact testContact = new Contact(LastName = 'Doe');
@@ -78,7 +78,7 @@ public with sharing class DMLOperationsTest {
         System.assertEquals(newLastName, updatedContact.LastName, 'The last name should be updated');
     }
 
-    @IsTest
+    @IsTest // Q5
     static void testUpdateOpportunityStage() {
         // Create a test Account first
         Account testAcc = new Account(Name = 'Test Account');
@@ -99,7 +99,7 @@ public with sharing class DMLOperationsTest {
         System.assertEquals(newStage, updatedOpp.StageName, 'The stage should be updated');
     }
 
-    @IsTest
+    @IsTest // Q6
     static void testUpdateAccountFields() {
         // Create an account for the test
         Account acc = new Account(Name = 'Test Account', Industry = 'Technology');
@@ -117,7 +117,7 @@ public with sharing class DMLOperationsTest {
     }
 
 
-    @IsTest
+    @IsTest // Q7
     static void testUpsertOpportunityList() {
         // Create a test Account first
         Account testAcc = new Account(Name = 'Test Account');
@@ -149,7 +149,7 @@ public with sharing class DMLOperationsTest {
         }
     }
     
-    @IsTest
+    @IsTest // Q8
     static void testUpsertOpportunities() {
         // Prepare the Account name
         String accountName = 'Test Account';
@@ -190,7 +190,7 @@ public with sharing class DMLOperationsTest {
         }
     }
 
-    @IsTest
+    @IsTest // Q9
 	static void testUpsertAccount() {
 		String accountName = 'Test Account';
 
@@ -215,7 +215,7 @@ public with sharing class DMLOperationsTest {
         System.assertEquals('Updated Account', updatedAccount.Description, 'Account description should match');
 	}
 
-    @IsTest
+    @IsTest // Q10
 	static void testUpsertAccountsWithContacts() {
 		Account testAccount = new Account(Name = 'Doe');
 		insert testAccount;
@@ -244,7 +244,7 @@ public with sharing class DMLOperationsTest {
 		}
 	}
     
-    @IsTest
+    @IsTest // Q11
     static void testInsertAndDeleteLeads() {
         // Prepare the Lead names
         List<String> leadNames = new List<String>{ 'Test Lead 1', 'Test Lead 2', 'Test Lead 3' };
@@ -261,7 +261,7 @@ public with sharing class DMLOperationsTest {
 
 
 
-    @IsTest
+    @IsTest // Q12
     static void testCreateAndDeleteCases() {
         // Create a test account
         Account testAccount = new Account(Name = 'Test Account');
