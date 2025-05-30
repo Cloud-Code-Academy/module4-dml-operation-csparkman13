@@ -191,48 +191,60 @@ public with sharing class DMLOperations {
      */
     public static void upsertOpportunities(String accountName, List<String> oppNames) {
         // Query for the Account to satisfy above requirements
-        Account acc = [
+        List<Account> acc = [
             SELECT Id 
             FROM Account 
             WHERE Name = :accountName
             ];
 
-        if (acc == null) {
-            // If the Account does not exist, create it (i.e. if it doesn't find that accountName from Query above, create it (so it can be associated with the Opportunity later))
-            acc = new Account(Name = accountName);
-            insert acc;
+        // Declare the Account ID variable
+        Id accId; 
+        
+        // If the Account does not exist, create it - if it doesn't find the accountName from Query above, create it, so it can be associated with the Opportunity later
+        // Store the new Id in accId
+        if (acc.size() == 0) {
+            Account newAcc = new Account(Name = accountName);
+            insert newAcc;
+            accId = newAcc.Id;
         }
+        // If the Account does exist, store the Id in accId
+            else {
+                accId = acc[0].Id;
+            }
 
         // Loop through each Opportunity name
         List<Opportunity> opptys = new List<Opportunity>();
 
-        // Check for duplicates, existing Opportunities
+        // Find existing Opportunities (in the oppName) List with the same names
+        // Checks for duplicates, so none get created
         List<Opportunity> existingOpptys = [
             SELECT Id, Name
             FROM   Opportunity
             WHERE Name IN : oppNames
             ];
 
-        // Map the Opportunity names to Ids (key to value)
+        // Map the Opportunity names to Ids (key to value [Opportunity Name to Opportunity Id])
+        // Lets you check later if an Opportunity with a given name already exists
         Map<String, Id> oppNameToId = new Map<String, Id>();
         for (Opportunity opp : existingOpptys) {
-            // We're assigning the key to value to the Map on this next line
+            // Now I'm assigning the key to value to the Map
             oppNameToId.put(opp.Name, opp.Id); 
         }
 
+        // Loop through provided names in the List and build new Opportunities
         for (String oppName : oppNames) {
             if (oppNameToId.containsKey(oppName)) {
-                // If the Opportunity name already exists in the map, skip it
+                // If the Opportunity name already exists in the Map, skip it
                 continue;
             }
-            // Create an Opportunity with the given name
+            // Create an Opportunity with the given Opportunity Name, Stage, and Close Date (required Fields)
             Opportunity opp = new Opportunity();
             opp.Name = oppName;
             opp.StageName = 'Qualification';
             opp.CloseDate = Date.today().addMonths(3);
             // Associate the Opportunity with the Account
-            opp.AccountId = acc.Id;
-            // Add the Opportunity to the list
+            opp.AccountId = accId;
+            // Add the Opportunity to the List of Opportunities to Insert
             opptys.add(opp);
         }
 
@@ -248,15 +260,25 @@ public with sharing class DMLOperations {
 	 * @return The Account that was upserted.
 	 */
 	public static Account upsertAccount(String accountName) {
-		// Query for the Account
+		// Query for the (existing) Account
 		List<Account> accounts = [SELECT Id FROM Account WHERE Name = :accountName];
 
-		// if the Account exists, update the description
+        Account acc;
+        // Checks if the accounts List has any records
+        if (!accounts.isEmpty()) {
+            //Gets the first Account from the List
+            // If the Account exists, update the description
+            acc = accounts[0];
+            acc.Description = 'Updated Account';
+        }
+            else {
+                // Otherwise, create a new Account and set the description
+                acc = new Account(Name = accountName, Description = 'New Account');
+            }
 
-		// otherwise, create a new Account and set the description
-
-		// Upsert the Account
-		return null;
+		// Upsert the Account - update if it exists, insert if it's new
+        upsert acc;
+		return acc;
 	}
 
     /**
@@ -269,39 +291,96 @@ public with sharing class DMLOperations {
 	 * @param contactsToUpsert List of Contacts to be upserted and linked to accounts.
 	 */
 	public static void upsertAccountsWithContacts(List<Contact> contactsToUpsert) {
+        // Check if List is null or empty
+        if (contactsToUpsert == null || contactsToUpsert.isEmpty()) {
+            return;
+        }
+
+        // Make a List of Contacts with associated Accounts
+        List<Contact> contactsToSave = new List<Contact>();
 		// Loop through each Contact
-
-		// Extract the Account Name from Contact's LastName
-
+        // Extract the Account Name from Contact's LastName
+        for (Contact con : contactsToUpsert) {
+            if (String.isNotBlank(con.LastName)) {
+                String accountName = con.LastName;
 		// Get the account based on the name or create one if it doesn't exist
-
+                Account acc = upsertAccount(accountName);
 		// Link the Contact to its Account using the Account Id
+                con.AccountId = acc.Id;
+                contactsToSave.add(con);
+            }
+        }
 
 		// Upsert the Contacts
+        if (!contactsToSave.isEmpty()) {
+            upsert contactsToSave;
+        }
 	}
 
     /**
      * Question 11
-     * Insert a list of Leads and then deletes them.
+     * Insert a list of Leads and then delete them.
      * @param leadNames The list of Lead names to be inserted.
      */
     public static void insertAndDeleteLeads(List<String> leadNames) {
-        // Loop through each Lead name
+        // Check if the List is null or empty
+        if (leadNames == null || leadNames.isEmpty()) {
+            return;
+        }
+
+        // Create a List to hold new Leads (that will be inserted into the system later on)
+        List<Lead> leadsToInsert = new List<Lead>();
+
+        // Loop through each Lead name (name is Last Name) in the leadNames List and create Leads
+        for (String name : leadNames) {
+            Lead newLead = new Lead(
+                FirstName = 'Test',
+                LastName = name,
+                Company = 'Test Company',
+                Status = 'Open - Not Contacted'
+            );
+            // Add the newly created Lead to the leadsToInsert List
+            leadsToInsert.add(newLead);
+        }
 
         // Insert the Leads
+        insert leadsToInsert;
 
         // Delete the Leads
+        delete leadsToInsert;
     }
 
     /**
      * Question 12
-     * Dynamically create the number of cases and relate it to the accountId, then deletes them.
+     * Dynamically create the number of cases and relate it to the accountId, then delete them.
      * @param accountId The account for which the cases will be created and then deleted.
      * @param numOfCases The number of cases to create.
      */
     public static void createAndDeleteCases(String accountId, Integer numOfCases) {
-        // Insert the cases
+        // Check if the accountId is null or empty and that numOfCases is a positive integer
+        if (String.isBlank(accountId) || numOfCases == null || numOfCases <= 0) {
+            return;
+        }
 
-        // Delete the cases
+        // Create a List to hold the Cases 
+        List<Case> casesToInsert = new List<Case>();
+        
+        // Loop through the total numOfCases and creates that many Cases and relates each to an Account 
+        for (Integer i = 0; i < numOfCases; i++) {
+            Case c = new Case(
+                Subject = 'Test Case' + (i + 1),
+                Status = 'New',
+                Origin = 'Web',
+                AccountId = accountId
+            );
+            // Add the Cases to the List
+            casesToInsert.add(c);
+        }
+
+        // Insert the Cases
+        insert casesToInsert;
+
+        // Delete the Cases
+        delete casesToInsert;
     }
 }
